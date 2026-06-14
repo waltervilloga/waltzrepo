@@ -1,0 +1,329 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Running Pace Calculator</title>
+    <style>
+      body {
+        font-family:
+          -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica,
+          Arial, sans-serif;
+        background-color: #f4f6f9;
+        color: #333;
+        padding: 20px;
+        display: flex;
+        justify-content: center;
+      }
+      .container {
+        background-color: #fff;
+        padding: 25px;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        max-width: 900px;
+        width: 100%;
+      }
+      h2 {
+        margin-top: 0;
+        color: #2c3e50;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+      }
+      .input-section {
+        background-color: #eef2f7;
+        padding: 15px;
+        border-radius: 6px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+      .input-section label {
+        font-weight: bold;
+        color: #2c3e50;
+      }
+      .input-section input {
+        width: 80px;
+        padding: 8px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        text-align: center;
+      }
+      .base-pace {
+        font-weight: normal;
+        color: #555;
+        margin-left: auto;
+        background: #fff;
+        padding: 8px 12px;
+        border-radius: 4px;
+        border: 1px solid #ddd;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 10px;
+        font-size: 14px;
+      }
+      th,
+      td {
+        padding: 10px 12px;
+        text-align: left;
+        border: 1px solid #ddd;
+      }
+      th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+      }
+      .high-intensity {
+        background-color: #f2c9c9;
+      }
+      .medium-intensity {
+        background-color: #ffffff;
+      }
+      .relaxed-intensity {
+        background-color: #e2efda;
+      }
+      .optional-intensity {
+        background-color: #fce4d6;
+      }
+      .hills-intensity {
+        background-color: #e1d5e7;
+      }
+      .speed-intensity {
+        background-color: #b4c6e7;
+      }
+
+      .intensity-cell {
+        font-weight: bold;
+        text-align: center;
+      }
+      .warmup-note {
+        color: #c00000;
+        font-weight: bold;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h2>5km-Based Pace Training Calculator</h2>
+
+      <div class="input-section">
+        <label for="fiveKmTime">What is your current 5km time? (MM):</label>
+        <input
+          type="number"
+          id="fiveKmTime"
+          value="25"
+          min="10"
+          max="60"
+          step="0.5"
+        />
+        <div class="base-pace">
+          <strong>5km Race Pace:</strong>
+          <span id="basePaceDisplay"></span> Min/km
+        </div>
+      </div>
+
+      <table>
+        <thead>
+          <tr>
+            <th>% Effort</th>
+            <th>Target / Description</th>
+            <th>Intensity Zone</th>
+            <th>Min/km (Dec)</th>
+            <th>Min/km (mm:ss)</th>
+            <th>Min/mile (Dec)</th>
+            <th>Min/mile (mm:ss)</th>
+          </tr>
+        </thead>
+        <tbody id="paceTableBody"></tbody>
+      </table>
+    </div>
+
+    <script>
+      const zonesConfig = [
+        {
+          pct: 1.0,
+          factor: 0.728,
+          name: "100m",
+          zone: "High intensity",
+          class: "high-intensity",
+          type: "pace",
+        },
+        {
+          pct: 0.9,
+          factor: 0.876,
+          name: "1km/1mile race pace",
+          zone: "High intensity",
+          class: "high-intensity",
+          type: "pace",
+        },
+        {
+          pct: 0.8,
+          factor: 1.0,
+          name: "5km race pace",
+          zone: "High intensity",
+          class: "high-intensity",
+          type: "pace",
+        },
+        {
+          pct: 0.7,
+          factor: 1.072,
+          name: "10km race pace",
+          zone: "Medium",
+          class: "medium-intensity",
+          type: "pace",
+        },
+        {
+          pct: 0.6,
+          factor: 1.166,
+          name: "21.1km race pace",
+          zone: "Medium",
+          class: "medium-intensity",
+          type: "pace",
+        },
+        {
+          pct: 0.5,
+          factor: 1.334,
+          name: "42.2km race pace",
+          zone: "Relaxed",
+          class: "relaxed-intensity",
+          type: "pace",
+        },
+        {
+          pct: 0.4,
+          factor: 1.75,
+          name: "Can run at this pace for 8+ hrs",
+          zone: "Relaxed",
+          class: "relaxed-intensity",
+          type: "pace",
+        },
+        {
+          pct: 0.5,
+          factor: 1.334,
+          name: "Recovery run - how are you feeling",
+          zone: "Optional",
+          class: "optional-intensity",
+          type: "pace",
+        },
+        {
+          pct: 0.9,
+          name: "Steepest hill you can imagine",
+          zone: "Hills",
+          class: "hills-intensity",
+          type: "note",
+        },
+        {
+          pct: 0.8,
+          name: "Mediam",
+          zone: "Hills",
+          class: "hills-intensity",
+          type: "note",
+        },
+        {
+          pct: 0.7,
+          name: "You know you not running flat",
+          zone: "Hills",
+          class: "hills-intensity",
+          type: "note",
+        },
+        {
+          pct: "70%-90%",
+          name: "Flat",
+          zone: "Speed",
+          class: "speed-intensity",
+          type: "note",
+        },
+      ];
+
+      const input5k = document.getElementById("fiveKmTime");
+      const basePaceDisplay = document.getElementById("basePaceDisplay");
+      const tableBody = document.getElementById("paceTableBody");
+
+      function formatTime(decimalMinutes) {
+        if (
+          isNaN(decimalMinutes) ||
+          decimalMinutes === null ||
+          decimalMinutes <= 0
+        )
+          return "";
+        const minutes = Math.floor(decimalMinutes);
+        const seconds = Math.round((decimalMinutes - minutes) * 60);
+
+        const finalMin = seconds === 60 ? minutes + 1 : minutes;
+        const finalSec = seconds === 60 ? 0 : seconds;
+
+        // CHANGED: Removed .padStart(2, "0") from finalMin so it omits the leading zero
+        return `${finalMin}:${String(finalSec).padStart(2, "0")}`;
+      }
+
+      function calculatePaces() {
+        const totalMinutes = parseFloat(input5k.value);
+        if (isNaN(totalMinutes) || totalMinutes <= 0) return;
+
+        // Base 5km pace (5.00 decimal for a 25 min 5k)
+        const basePaceKm = totalMinutes / 5;
+
+        // Calculate the 100% effort pace
+        const hundredPercentPaceDec = basePaceKm;
+
+        // FIXED: Updates the status box with the formatted 100%
+        basePaceDisplay.textContent = formatTime(hundredPercentPaceDec);
+
+        tableBody.innerHTML = "";
+
+        zonesConfig.forEach((row) => {
+          const tr = document.createElement("tr");
+          tr.className = row.class;
+
+          const tdPct = document.createElement("td");
+          tdPct.textContent =
+            typeof row.pct === "number" ? `${row.pct * 100}%` : row.pct;
+          tr.appendChild(tdPct);
+
+          const tdName = document.createElement("td");
+          tdName.textContent = row.name;
+          tr.appendChild(tdName);
+
+          const tdZone = document.createElement("td");
+          tdZone.className = "intensity-cell";
+          tdZone.textContent = row.zone;
+          tr.appendChild(tdZone);
+
+          if (row.type === "pace") {
+            const minKmDec = basePaceKm * row.factor;
+            const minMileDec = minKmDec * 1.609344;
+
+            const tdKmDec = document.createElement("td");
+            tdKmDec.textContent = minKmDec.toFixed(2);
+            tr.appendChild(tdKmDec);
+
+            const tdKmTime = document.createElement("td");
+            tdKmTime.textContent = formatTime(minKmDec);
+            tr.appendChild(tdKmTime);
+
+            const tdMileDec = document.createElement("td");
+            tdMileDec.textContent = minMileDec.toFixed(2);
+            tr.appendChild(tdMileDec);
+
+            const tdMileTime = document.createElement("td");
+            tdMileTime.textContent = formatTime(minMileDec);
+            tr.appendChild(tdMileTime);
+          } else {
+            const tdNote = document.createElement("td");
+            tdNote.colSpan = 4;
+            tdNote.className = "warmup-note";
+            tdNote.textContent = "*MUST WARM UP at least 10min";
+            tr.appendChild(tdNote);
+          }
+
+          tableBody.appendChild(tr);
+        });
+      }
+
+      input5k.addEventListener("input", calculatePaces);
+      calculatePaces();
+    </script>
+  </body>
+</html>
